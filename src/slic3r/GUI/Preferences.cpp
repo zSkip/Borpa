@@ -1074,7 +1074,7 @@ wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tool
     wxBoxSizer *m_sizer = create_item_label(title, tip);
 
     auto checkbox = new ::CheckBox(m_parent);
-    checkbox->SetValue((app_config->get(param) == "1") ? true : false);
+    checkbox->SetValue(app_config->get(param) == "0"); // Borpa: "Light mode" is the inverse of dark_color_mode
     checkbox->SetToolTip(tip);
     m_dark_mode_ckeckbox = checkbox;
 
@@ -1082,7 +1082,7 @@ wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tool
 
     //// save config
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent& e) {
-        app_config->set(param, checkbox->GetValue() ? "1" : "0");
+        app_config->set(param, checkbox->GetValue() ? "0" : "1"); // Borpa: checked = light
         app_config->save();
         wxGetApp().Update_dark_mode_flag();
 
@@ -1766,7 +1766,7 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_default_page);
 
 #ifdef _WIN32
-    auto item_darkmode         = create_item_darkmode(_L("Enable dark Mode"), "", "dark_color_mode");
+    auto item_darkmode         = create_item_darkmode(_L("Light mode"), "", "dark_color_mode"); // Borpa: was "Enable dark Mode"
     g_sizer->Add(item_darkmode);
 #endif
 
