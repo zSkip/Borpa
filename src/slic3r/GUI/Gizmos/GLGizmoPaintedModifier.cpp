@@ -221,9 +221,9 @@ void GLGizmoPaintedModifier::on_render_input_window(float x, float y, float bott
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.f * scale);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.f * scale, 4.f * scale));
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
-        ImGui::PushStyleColor(ImGuiCol_Button, is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(.6f, .6f, .6f, .2f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, is_active ? ImVec4(0.f, .59f, .53f, .30f) : ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Button, is_active ? ImVec4(.455f, .373f, .659f, .25f) : ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, is_active ? ImVec4(.455f, .373f, .659f, .25f) : ImVec4(.6f, .6f, .6f, .2f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, is_active ? ImVec4(.455f, .373f, .659f, .30f) : ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_Border, is_active ? ImGuiWrapper::COL_ORCA : ImVec4(0, 0, 0, 0));
         ImGui::PushStyleColor(ImGuiCol_BorderActive, is_active ? ImGuiWrapper::COL_ORCA : ImVec4(0, 0, 0, 0));
         const bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f * scale, 16.f * scale));

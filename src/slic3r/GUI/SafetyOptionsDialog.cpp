@@ -32,9 +32,9 @@ static const wxColour STATIC_TEXT_EXPLAIN_COL = wxColour(100, 100, 100);
 namespace Slic3r { namespace GUI {
 
 static StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Disabled),
-                               std::pair<wxColour, int>(wxColour(27, 136, 68), StateColor::Pressed),
-                               std::pair<wxColour, int>(wxColour(61, 203, 115), StateColor::Hovered),
-                               std::pair<wxColour, int>(wxColour(0, 177, 66), StateColor::Normal));
+                               std::pair<wxColour, int>(wxColour(98, 79, 150), StateColor::Pressed),
+                               std::pair<wxColour, int>(wxColour(140, 116, 181), StateColor::Hovered),
+                               std::pair<wxColour, int>(wxColour(116, 95, 168), StateColor::Normal));
 
 SafetyOptionsDialog::SafetyOptionsDialog(wxWindow* parent)
     : DPIDialog(parent, wxID_ANY, _L("Safety Options"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)

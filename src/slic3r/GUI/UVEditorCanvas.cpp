@@ -64,13 +64,13 @@ const ColorRGBA UV_COLOR_TILE_OUTLINE  = { 0.70f, 0.70f, 0.72f, 1.f };
 const ColorRGBA UV_COLOR_WIRE          = { 1.f, 1.f, 1.f, 0.30f };  // interior edges, unselected
 const ColorRGBA UV_COLOR_WIRE_SHADOW   = { 0.f, 0.f, 0.f, 0.35f };  // 1 px offset under the wire
 const ColorRGBA UV_COLOR_BOUNDARY      = { 0.93f, 0.93f, 0.94f, 1.f };
-const ColorRGBA UV_COLOR_HOVER         = { 0.72f, 0.98f, 0.93f, 1.f }; // what a click would grab
+const ColorRGBA UV_COLOR_HOVER         = { 0.894f, 0.847f, 0.914f, 1.f }; // what a click would grab
 const ColorRGBA UV_COLOR_HOVER_FILL    = { 1.f, 1.f, 1.f, 0.12f };
 // No wash on unselected islands: the texture inside them is exactly what gets baked, so it shows unaltered.
 const ColorRGBA UV_COLOR_FILL          = { 1.f, 1.f, 1.f, 0.f };
-const ColorRGBA UV_COLOR_SEL_FILL      = { 0.15f, 0.85f, 0.75f, 0.24f };
-const ColorRGBA UV_COLOR_SEL_WIRE      = { 0.55f, 1.f, 0.92f, 0.55f };
-const ColorRGBA UV_COLOR_SEL_BOUNDARY  = { 0.16f, 0.90f, 0.78f, 1.f }; // the app teal, brightened to read on texture
+const ColorRGBA UV_COLOR_SEL_FILL      = { 0.671f, 0.588f, 0.776f, 0.24f };
+const ColorRGBA UV_COLOR_SEL_WIRE      = { 0.894f, 0.847f, 0.914f, 0.55f };
+const ColorRGBA UV_COLOR_SEL_BOUNDARY  = { 0.800f, 0.722f, 0.867f, 1.f }; // the app accent, brightened to read on texture
 const ColorRGBA UV_COLOR_DIAL          = { 1.f, 0.85f, 0.2f, 0.9f };   // rotation protractor (#11)
 
 constexpr float SNAP_PIXELS = 28.f; // how close a boundary vertex has to come before it sticks (#2)
