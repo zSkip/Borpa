@@ -10,7 +10,11 @@
 #include "Widgets/Button.hpp"
 #include "Widgets/WebView.hpp"
 
+#include "libslic3r/Config.hpp"
 #include "libslic3r/Format/ProjectStrategy.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r_version.h"
 
@@ -30,14 +34,18 @@
 #include <wx/filesys.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/timer.h>
 #include <wx/uri.h>
 #include <wx/utils.h>
 #include <wx/wfstream.h>
 #include <wx/wxcrt.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <exception>
 #include <ios>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -51,6 +59,62 @@ const char* const SEND_TO_PLATE_SCRIPT =
     "else{window.wx.postMessage(JSON.stringify({borpa:1,type:'error',code:'not-ready',message:''}));}})();";
 
 boost::filesystem::path bundle_dir() { return boost::filesystem::path(resources_dir()) / "web" / "hew"; }
+
+// How often the panel checks, while it is shown, whether the filament list changed.
+constexpr int PRESET_CHECK_MS = 1000;
+
+const std::string* first_string(const DynamicPrintConfig& config, const char* key)
+{
+    const auto* opt = config.option<ConfigOptionStrings>(key);
+    return opt != nullptr && !opt->values.empty() ? &opt->values.front() : nullptr;
+}
+
+// The filaments the selected printer can use, as the page takes them (borpa/filaments.ts in Hew):
+// every filament preset the filament combo boxes list (visible and compatible with the printer),
+// and every preset in a project slot, with the slot it occupies. A preset in a slot shows the
+// slot's colour.
+nlohmann::json filament_list()
+{
+    nlohmann::json      list = nlohmann::json::array();
+    const PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr)
+        return list;
+
+    const std::vector<std::string>& slots = bundle->filament_presets;
+    const auto* slot_colours = bundle->project_config.option<ConfigOptionStrings>("filament_colour");
+    for (const Preset& preset : bundle->filaments.get_presets()) {
+        const auto slot = std::find(slots.begin(), slots.end(), preset.name);
+        if (slot == slots.end() && (!preset.is_visible || !preset.is_compatible || preset.is_default))
+            continue;
+        const DynamicPrintConfig& config = preset.config;
+        nlohmann::json            entry  = {{"name", preset.name}};
+        const std::string*        type   = first_string(config, "filament_type");
+        const std::string*        vendor = first_string(config, "filament_vendor");
+        const std::string*        colour = first_string(config, "filament_colour");
+        entry["type"]   = type != nullptr ? *type : std::string();
+        entry["vendor"] = vendor != nullptr ? *vendor : std::string();
+        entry["colour"] = colour != nullptr ? *colour : std::string();
+        const auto* density = config.option<ConfigOptionFloats>("filament_density");
+        if (density != nullptr && !density->values.empty() && density->values.front() > 0.)
+            entry["density"] = density->values.front();
+        else
+            entry["density"] = nullptr;
+        const auto* softening = config.option<ConfigOptionInts>("temperature_vitrification");
+        if (softening != nullptr && !softening->values.empty())
+            entry["softeningTemp"] = softening->values.front();
+        else
+            entry["softeningTemp"] = nullptr;
+        entry["slot"] = nullptr;
+        if (slot != slots.end()) {
+            const size_t i = static_cast<size_t>(slot - slots.begin());
+            entry["slot"]  = i + 1;
+            if (slot_colours != nullptr && i < slot_colours->values.size() && !slot_colours->values[i].empty())
+                entry["colour"] = slot_colours->values[i];
+        }
+        list.push_back(std::move(entry));
+    }
+    return list;
+}
 
 // The page compiles its kernel with WebAssembly.compileStreaming, which requires application/wasm.
 wxString mime_type(const wxString& extension)
@@ -189,6 +253,14 @@ HewPanel::HewPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxDefaultPositi
     m_browser->AddUserScript(wxString::FromUTF8("window.__BORPA_HOST__ = " + host.dump() + ";"), wxWEBVIEW_INJECT_AT_DOCUMENT_START);
 
     m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &HewPanel::on_script_message, this);
+    // The page follows the printer and filament presets. They change in other tabs and dialogs,
+    // so the panel compares the list while it is shown instead of hooking every place that can
+    // change a preset.
+    m_preset_timer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+        if (IsShownOnScreen())
+            send_filaments(false);
+    });
+    m_preset_timer.Start(PRESET_CHECK_MS);
     m_browser->Bind(wxEVT_WEBVIEW_NEWWINDOW, &HewPanel::on_new_window, this);
     // Handled so WebView::RecreateAll() (a theme change) does not reload the page, which would
     // discard the model being edited.
@@ -202,6 +274,7 @@ HewPanel::HewPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxDefaultPositi
 
 HewPanel::~HewPanel()
 {
+    m_preset_timer.Stop();
     SetEvtHandlerEnabled(false);
     if (m_browser != nullptr) {
         m_browser->Destroy();
@@ -231,6 +304,11 @@ void HewPanel::on_script_message(wxWebViewEvent& evt)
         // Dialogs and model loading run after the web view's message callback has returned.
         if (type == "ready") {
             BOOST_LOG_TRIVIAL(info) << "Hew: modeler ready";
+            // A reloaded page has lost the list it had.
+            CallAfter([this] {
+                m_page_ready = true;
+                send_filaments(true);
+            });
         } else if (type == "plate") {
             BOOST_LOG_TRIVIAL(info) << "Hew: plate received, non-solid objects in it: " << msg.value("nonSolid", 0);
             CallAfter([this, name = msg.value("name", std::string()), data = msg.value("data", std::string())] { on_plate(name, data); });
@@ -275,6 +353,19 @@ void HewPanel::on_plate(const std::string& name, const std::string& data)
                       wxOK | wxICON_ERROR)
             .ShowModal();
     }
+}
+
+void HewPanel::send_filaments(bool force)
+{
+    if (m_browser == nullptr || !m_page_ready)
+        return;
+    // ASCII-only JSON: preset names can hold any character, and the script must stay valid.
+    std::string list = filament_list().dump(-1, ' ', true);
+    if (!force && list == m_sent_filaments)
+        return;
+    BOOST_LOG_TRIVIAL(info) << "Hew: sending the filament list";
+    WebView::RunScript(m_browser, wxString::FromUTF8("(function(){var h=window.__borpaHew;if(h&&h.setFilaments){h.setFilaments(" + list + ");}})();"));
+    m_sent_filaments = std::move(list);
 }
 
 void HewPanel::show_error(const std::string& code)

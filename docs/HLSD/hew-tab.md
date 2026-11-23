@@ -8,8 +8,10 @@ plate without leaving the slicer. Hew lives in the `hew/` submodule and is used 
 shipped for the web; the slicer adds a host around it and one bridge call, and Hew adds a small
 module (`hew/app/src/borpa/host.ts`) that answers that call.
 
-The coupling is a single action: **Send to Prepare** exports the open Hew document as a 3MF and
-loads it into the current project like any imported file. Nothing else crosses between the two.
+Two things cross between them. **Send to Prepare** exports the open Hew document as a 3MF and
+loads it into the current project like any imported file. And the slicer tells Hew which
+filaments the selected printer can use: everything drawn in Hew is built in one of them, each
+Object in one filament, shown in that filament's colour.
 
 ## Panel and page lifetime
 
@@ -55,8 +57,22 @@ Messages are JSON strings with `"borpa": 1`; anything else is ignored.
   - `{"type":"ready"}` once the bridge is installed;
   - `{"type":"plate","name":…,"data":<base64 3MF>,"nonSolid":<count>}` in answer to a send;
   - `{"type":"error","code":"not-ready"|"empty"|"export-failed","message":…}`.
-- Host to page: the button runs `window.__borpaHew.sendToPlate()`, or reports `not-ready` itself
-  when the bridge is not installed yet.
+- Host to page:
+  - the button runs `window.__borpaHew.sendToPlate()`, or reports `not-ready` itself when the
+    bridge is not installed yet;
+  - `window.__borpaHew.setFilaments(list)` after every `ready` (a reloaded page has lost its
+    list) and whenever the list changes. Each entry is
+    `{name, type, vendor, colour, density, softeningTemp, slot}`: the preset's name, its
+    `filament_type`, `filament_vendor` and `filament_colour` (`#RRGGBB`), `filament_density` in
+    g/cm³ and `temperature_vitrification` in °C (`null` when the preset gives none), and the
+    1-based project slot holding the preset (`null` for none). A preset in a slot shows the
+    slot's colour.
+
+The list holds every filament preset the filament combo boxes list: visible and compatible with
+the selected printer. Presets change in the Prepare sidebar, the settings tabs and their dialogs,
+so rather than hook each of those, the panel builds the list once a second while it is shown and
+sends it when it differs from the last one sent. Hidden, it does nothing, and the first check
+after the tab is shown again brings the page up to date.
 
 On `plate` the host writes the file to `<temp>/borpa_hew/<name>.3mf` and loads it with
 `LoadStrategy::LoadModel | LoadStrategy::Silence`, so the objects are added to the current project
@@ -65,9 +81,21 @@ preferences without showing the import-options dialog, and keeps the temporary f
 the project file or the last-used folder; errors are still reported. Hew's 3MF export includes objects that are not
 watertight solids; `nonSolid` counts them, and the host only logs it.
 
+## Filaments in Hew
+
+Hew's side is `hew/app/src/borpa/` (`filaments.ts`, `buildMaterial.ts`, `filamentScene.ts`).
+A filament is a Hew material named after the preset and coloured like it, linked to the preset by
+an attribute dictionary in the namespace `borpa.filament` (`preset`, `type`, `vendor`), so a
+reopened document finds its filaments again by preset name, or by type when that preset is gone.
+An Object's filament is its base material; per-face paint is not offered, and an import or a
+document from before filaments is flattened to one filament per Object. Every operation that
+makes an Object gives it the selected filament in the same undo step. Physical properties are not
+stored in the document.
+
 ## Deliberately not shared
 
 Hew keeps its own documents, undo history, settings and storage inside the web view's profile.
-It does not read the slicer's presets, printer bed or units, and the slicer does not read `.hew`
-documents or keep a link from a plate object back to its Hew source: what reaches Prepare is an
-ordinary mesh object.
+It reads the filament list and nothing else of the slicer's presets: not the printer bed or the
+units. The slicer does not read `.hew` documents or keep a link from a plate object back to its
+Hew source: what reaches Prepare is an ordinary mesh object, and every object prints in whatever
+filament slot 1 holds.
