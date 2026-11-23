@@ -665,6 +665,6 @@ TEST_CASE("wayland_socket_available uses WAYLAND_SOCKET instead of the socket fi
 TEST_CASE("default_data_dir is the XDG config dir without a portable data_dir folder", "[utils]") {
     ScopedEnvVar xdg("XDG_CONFIG_HOME", "/tmp/xdg-test");
     // A data_dir folder next to the test binary would make it a portable install; none is expected.
-    CHECK(Slic3r::default_data_dir() == "/tmp/xdg-test/" SLIC3R_APP_KEY);
+    CHECK(Slic3r::default_data_dir() == "/tmp/xdg-test/" SLIC3R_APP_NAME);
 }
 #endif

@@ -2735,7 +2735,9 @@ void GUI_App::init_webview_runtime()
 void GUI_App::init_app_config()
 {
 	// Profiles for the alpha are stored into the PrusaSlicer-alpha directory to not mix with the current release.
-    SetAppName(SLIC3R_APP_KEY);
+    // Borpa: named after the app, not SLIC3R_APP_KEY, so the default data directory
+    // (GetUserDataDir() on Windows and macOS) is not the one an installed OrcaSlicer uses.
+    SetAppName(SLIC3R_APP_NAME);
 //	SetAppName(SLIC3R_APP_KEY "-alpha");
 //  SetAppName(SLIC3R_APP_KEY "-beta");
 //	SetAppDisplayName(SLIC3R_APP_NAME);

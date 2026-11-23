@@ -439,7 +439,8 @@ std::string default_data_dir()
     const boost::filesystem::path portable = boost::dll::program_location(ec).parent_path() / "data_dir";
     if (!ec && boost::filesystem::exists(portable, ec))
         return portable.string();
-    return xdg_config_dir(SLIC3R_APP_KEY);
+    // Borpa: the app name, not SLIC3R_APP_KEY, keeps it apart from an installed OrcaSlicer's.
+    return xdg_config_dir(SLIC3R_APP_NAME);
 }
 #endif
 
@@ -1560,7 +1561,8 @@ std::string string_printf(const char *format, ...)
 
 std::string header_slic3r_generated()
 {
-	return std::string(SLIC3R_APP_NAME " " SoftFever_VERSION);
+	// Borpa: written into G-code, 3MF and config files, so it keeps the OrcaSlicer key for interoperability.
+	return std::string(SLIC3R_APP_KEY " " SoftFever_VERSION);
 }
 
 std::string header_gcodeviewer_generated()
