@@ -16,6 +16,11 @@ set(ORCA_VERSION_PATCH ${CMAKE_MATCH_3})
 
 set(SLIC3R_VERSION "02.08.01.55")
 
+# Borpa: Borpa's own release version, DISPLAY ONLY (splash, About, window title, Windows
+# version resource). Not to be confused with SoftFever_VERSION, which stays the OrcaSlicer
+# base version used for preset compatibility, 3MF/G-code metadata and update checks.
+set(BORPA_VERSION "1.0.0")
+
 if (NOT DEFINED ORCA_UPDATER_SIG_KEY)
     set(ORCA_UPDATER_SIG_KEY "" CACHE STRING "Base64url encoded updater signature key")
 endif()

@@ -263,8 +263,13 @@ AboutDialog::AboutDialog()
         // _build_string_font.SetStyle(wxFONTSTYLE_ITALIC);
 
         vesizer->Add(0, 0, 1, wxEXPAND, FromDIP(5));
-        auto          version_string = std::string(SoftFever_VERSION); // _L("Orca Slicer ") + " " + std::string(SoftFever_VERSION);
+        auto          version_string = std::string(BORPA_VERSION); // Borpa: the banner already reads "Borpa Slicer"
         wxStaticText* version = new wxStaticText(this, wxID_ANY, version_string.c_str(), wxDefaultPosition, wxDefaultSize);
+        // TRN %s is the version of OrcaSlicer that this application is based on
+        wxStaticText* base_string = new wxStaticText(this, wxID_ANY, wxString::Format(_L("Based on OrcaSlicer %s"), SoftFever_VERSION)); // Borpa
+        base_string->SetFont(_build_string_font);                     // Borpa
+        base_string->SetForegroundColour(wxColour("#949494"));        // Borpa
+        base_string->SetBackgroundColour(wxColour("#FFFFFF"));        // Borpa
         // TRN %s is the commit the application was built from
         wxStaticText* credits_string = new wxStaticText(this, wxID_ANY, wxString::Format(_L("Build %s"), build_commit_label), wxDefaultPosition, wxDefaultSize);
         credits_string->SetFont(_build_string_font);
@@ -278,6 +283,7 @@ AboutDialog::AboutDialog()
 
         vesizer->Add(version, 0, wxRIGHT | wxALIGN_RIGHT, FromDIP(20));
         vesizer->AddSpacer(FromDIP(5));
+        vesizer->Add(base_string, 0, wxRIGHT | wxALIGN_RIGHT, FromDIP(20)); // Borpa
         vesizer->Add(credits_string, 0, wxRIGHT | wxALIGN_RIGHT, FromDIP(20));
         vesizer->Add(0, 0, 1, wxEXPAND, FromDIP(5));
     }
