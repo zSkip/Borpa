@@ -467,6 +467,11 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
     set(IN_GIT_REPO TRUE)
     # Find relative path from root to source used for adjusting patch command
     file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
+    # Build tree outside the repository: git apply then runs outside any work tree
+    # and needs no --directory.
+    if(IS_ABSOLUTE "${BINARY_DIR_REL}" OR BINARY_DIR_REL MATCHES "^\\.\\.(/|$)")
+        unset(IN_GIT_REPO)
+    endif()
 endif ()
 
 include(OCCT/OCCT.cmake)
