@@ -1,253 +1,144 @@
-<div align="center">
+# Borpa
 
-<picture>
-  <img alt="OrcaSlicer logo" src="resources/images/OrcaSlicer.png" width="15%" height="15%">
-</picture>
+Borpa is OrcaSlicer with the Hew 3D modeler built in. A "Hew" tab sits between
+Home and Prepare. You model there and press "Send to Prepare" to put the model on
+the build plate: it is exported as 3MF and added to the current project. From there
+you slice as in OrcaSlicer.
 
-<a href="https://trendshift.io/repositories/15552" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15552" alt="OrcaSlicer%2FOrcaSlicer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+## Modification notice
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/OrcaSlicer/OrcaSlicer)](https://github.com/OrcaSlicer/OrcaSlicer/stargazers) [![Build all](https://img.shields.io/github/actions/workflow/status/OrcaSlicer/OrcaSlicer/main_build_status.yml?label=Build%20all)](https://github.com/OrcaSlicer/OrcaSlicer/actions/workflows/build_all.yml)
+**Borpa is a modified version of OrcaSlicer, and it embeds a modified copy of Hew.
+The modifications were made in November 2026.**
 
-OrcaSlicer: an open source Next-Gen Slicing Software for Precision 3D Prints.  
-Optimize your prints with ultra-fast slicing, intelligent support generation, and seamless printer compatibility—engineered for perfection.
+The modifications are:
 
-# Official links and community
+- The Hew tab and its host bridge (`src/slic3r/GUI/HewPanel.*`).
+- The application name and data folder are `Borpa`. Files and network identifiers
+  that other software reads still say OrcaSlicer.
+- A purple accent colour in place of OrcaSlicer's.
+- No application update check against OrcaSlicer's servers.
+- On the Hew side, a small host bridge (`hew/app/src/borpa/host.ts`), and no
+  service worker when Hew runs embedded.
 
-#### Official Website:
+The full history of the changes is in this repository's git history and in that of
+the `hew` submodule.
 
-<a href="https://www.orcaslicer.com/" style="font-size:2em;">OrcaSlicer.com</a>
+## Not affiliated
 
-#### Github Repository:
+Borpa is not affiliated with, endorsed by, or supported by the OrcaSlicer project
+or the Hew project. Please do not report Borpa problems to them.
 
-<a href="https://github.com/OrcaSlicer/OrcaSlicer"><img src="https://img.shields.io/badge/OrcaSlicer-181717?style=flat&logo=github&logoColor=white" width="200" alt="GitHub Logo"/> </a>
+## Credits
 
-#### Follow us:
+Borpa is built on the work of these projects:
 
-<a href="https://twitter.com/real_OrcaSlicer"><img src="https://img.shields.io/badge/real__OrcaSlicer-000000?style=flat&logo=x&logoColor=white" width="200" alt="X Logo"/> </a>  
-<a href="https://www.youtube.com/@OfficialOrcaSlicer"><img src="https://img.shields.io/badge/OfficialOrcaSlicer-FF0000?style=flat&logo=youtube&logoColor=white" width="200" alt="YouTube Logo"/> </a>
+- [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer), which is based on
+- [Bambu Studio](https://github.com/bambulab/BambuStudio), which is based on
+- [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) by Prusa Research, which is based on
+- [Slic3r](https://github.com/slic3r/Slic3r) by Alessandro Ranellucci and the RepRap community.
 
-#### Join our Discord community:
+OrcaSlicer also draws on [SuperSlicer](https://github.com/supermerill/SuperSlicer)
+by supermerill and on ideas from Cura.
 
-<a href="https://discord.gg/P4VE9UY9gJ"><img src="https://img.shields.io/badge/-Discord-5865F2?style=flat&logo=discord&logoColor=fff" width="200" alt="discord logo"/> </a>
+The modeler is [Hew](https://github.com/hew3d/hew).
 
-<table border="2" style="border-color: #ffa500; background-color:rgb(232, 220, 180); color: #856404;">
-<tr>
-<td>
-<strong>⚠️ CAUTION:</strong><br>
-Several clickbait and malicious websites, such as <b>orca-slicer[.]com</b> and <b>orcaslicer[.]net</b>, are pretending to be the official OrcaSlicer site. These sites may redirect you to dangerous downloads or contain misleading information.<br>
-<b>Our only official website is <a href="https://www.orcaslicer.com/">www.orcaslicer.com</a>.</b><br><br>
-If you come across any of these in search results, please <b>report them</b> as unsafe or phishing to help keep the community secure with:<br>
- - <a href="https://safebrowsing.google.com/safebrowsing/report_phish/">Google Safe Browsing</a><br>
- - <a href="https://www.microsoft.com/en-us/wdsi/support/report-unsafe-site">Microsoft Security Intelligence</a><br>
- - <a href="https://ipthreat.net/tools/reportphishing">IPThreat</a>
-</td>
-</tr>
-</table>
+## Licence
 
-</div>
+Borpa is licensed under the GNU Affero General Public License, version 3 (see
+`LICENSE.txt`).
 
-# Main features
+OrcaSlicer, and therefore Borpa, includes a pressure advance calibration pattern
+adapted from Andrew Ellis' generator, which is licensed under the GNU General
+Public License, version 3, and is itself adapted from a generator by Sineos for
+Marlin under the same licence. The optional Bambu networking plugin is based on
+non-free libraries from Bambu Lab; it is optional and adds functions for Bambu Lab
+printer users.
 
-- **[Advanced Calibration Tools](https://www.orcaslicer.com/wiki/calibration_guide)**  
-  Comprehensive suite: temperature towers, flow rate, retraction & more for optimal performance.
-- **[Precise Wall](https://www.orcaslicer.com/wiki/quality_settings_precision#precise-wall) and [Seam Control](https://www.orcaslicer.com/wiki/quality_settings_seam)**  
-  Adjust outer wall spacing and apply scarf seams to enhance print accuracy.
-- **[Sandwich Mode](https://www.orcaslicer.com/wiki/quality_settings_wall_and_surfaces#innerouterinner) and [Polyholes](https://www.orcaslicer.com/wiki/quality_settings_precision#polyholes) Support**  
-  Use varied infill [patterns](https://www.orcaslicer.com/wiki/strength_settings_patterns) and accurate hole shapes for improved clarity.
-- **[Overhang](https://www.orcaslicer.com/wiki/quality_settings_overhangs) and [Support Optimization](https://www.orcaslicer.com/wiki#support-settings)**  
-  Modify geometry for printable overhangs with precise support placement.
-- **[Granular Controls and Customization](https://www.orcaslicer.com/wiki#process-settings)**  
-  Fine-tune print speed, layer height, pressure, and temperature with precision.
-- **Network Printer Support**  
-  Seamless integration with Klipper, PrusaLink, and OctoPrint for remote control.
-- **[Mouse Ear Brims](https://www.orcaslicer.com/wiki/others_settings_brim) & [Adaptive Bed Mesh](https://www.orcaslicer.com/wiki/printer_basic_information_adaptive_bed_mesh)**  
-  Automatic brims and adaptive mesh calibration ensure consistent adhesion.
-- **User-Friendly Interface**  
-  Intuitive drag-and-drop design with pre-made profiles for popular printers.
-- **[Open-Source](https://github.com/OrcaSlicer/OrcaSlicer) & [Community Driven](https://discord.gg/P4VE9UY9gJ)**  
-  Regular updates fueled by continuous community contributions.
-- **Wide Printer Compatibility**  
-  Supports a broad range of printers: Bambu Lab, Prusa, Creality, Voron, and more.
-- **[Belt Printer Support](https://www.orcaslicer.com/wiki/belt_printing)**  
-  Slice for belt / conveyor (infinite-Z) printers, with belt-aware supports and a tilted-bed preview. Contributed by [Joseph Robertson (@HarrierPigeon)](https://github.com/HarrierPigeon).
-- **[IDEX/IQEX Parallel Printing Support](https://www.orcaslicer.com/wiki/idex_iqex_parallel_printing)**  
-  Print copies or mirror images of a part on every carriage of an IDEX or IQEX printer at once, with the mode chosen per plate and nozzle clearance zones shown on the bed. Contributed by [Clifford (@cgarwood82)](https://github.com/cgarwood82).
-- Additional features can be found in the [change notes](https://github.com/OrcaSlicer/OrcaSlicer/releases/).
+The Hew code in `hew/` is licensed under AGPL-3.0-only (`hew/LICENSE`) together
+with the Hew Plugin API Exception (`hew/LICENSE-EXCEPTION`). The exception applies
+to Hew's code only, not to the rest of Borpa. Hew's brand assets in `hew/brand/`
+are licensed under CC BY 4.0 (`hew/brand/LICENSE`); that licence grants no
+trademark rights to the name "Hew" or its mark.
 
-# Wiki
+The source for a given Borpa release is the tagged commit of this repository
+together with the `hew` submodule commit it records.
 
-The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanation of the slicer settings, including how to maximize their use and how to calibrate and set up your printer.
+## Building on Windows
 
-- **[Access the wiki here](https://www.orcaslicer.com/wiki)**
-- **[Contribute to the wiki](https://www.orcaslicer.com/wiki/how_to_wiki)**
+Prerequisites:
 
-# Download
+- Visual Studio with the "Desktop development with C++" workload
+- CMake
+- Strawberry Perl
+- Git
+- Node.js with pnpm
+- Rust (the toolchain named in `hew/rust-toolchain.toml`, with its wasm32 target)
+  and wasm-pack
 
-## Stable Release
+Steps:
 
-📥 **[Download the Latest Stable Release](https://github.com/OrcaSlicer/OrcaSlicer/releases/latest)**  
-Visit our GitHub Releases page for the latest stable version of OrcaSlicer, recommended for most users.  
-Windows and macOS release and nightly builds are code signed.
+1. Clone with the submodule:
 
-## Nightly Builds
+   ```
+   git clone --recurse-submodules https://github.com/zSkip/Borpa.git
+   cd Borpa
+   ```
 
-🌙 **[Download the Latest Nightly Build](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds)**  
-Explore the latest developments in OrcaSlicer with our nightly builds. Feedback on these versions is highly appreciated.
+2. Build the dependencies. This is slow and only needs doing once:
 
-# How to install
+   ```
+   .\build_win.bat -d
+   ```
 
-## Windows
+3. Build Hew's web bundle into `resources/web/hew`. Run `pnpm install` once in
+   `hew/app` first. This must be done before the app build, which copies
+   `resources`; without it the Hew tab shows a "not included in this build"
+   message.
 
-Download the **Windows Installer exe** for your preferred version from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases). Both `x64` and `arm64` installers are published — pick the one matching your CPU.
+   ```
+   node scripts/build_hew.mjs
+   ```
 
-- *For convenience there is also a portable build available.*
-    <details>
-    <summary>Troubleshooting</summary>
+4. Build the app:
 
-  - *If you have troubles to run the build, you might need to install following runtimes:*
-  - [MicrosoftEdgeWebView2RuntimeInstallerX64](https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v1.0.10-sf2/MicrosoftEdgeWebView2RuntimeInstallerX64.exe)
-    - [Details of this runtime](https://aka.ms/webview2)
-    - [Alternative Download Link Hosted by Microsoft](https://go.microsoft.com/fwlink/p/?LinkId=2124703)
-  - [vcredist2019_x64](https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v1.0.10-sf2/vcredist2019_x64.exe)
-    - [Alternative Download Link Hosted by Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-    - This file may already be available on your computer if you've installed visual studio.  Check the following location: `%VCINSTALLDIR%Redist\MSVC\v142`
-    </details>
+   ```
+   .\build_win.bat -s
+   ```
 
-### Microsoft Store
+   The result is `build\src\Release\orca-slicer.exe`.
 
-Install from the [Microsoft Store](https://apps.microsoft.com/detail/9mv6gl23xm59) when you prefer a Store-signed package (helps on Windows 11 Smart App Control).
+If the checkout path contains a space, put the build trees elsewhere with
+`--deps-dir` and `--build-dir`, and run from a shell where `cmake` and `perl` are
+on PATH. For example:
 
-### Windows Package Manager
-
-```shell
-winget install --id=SoftFever.OrcaSlicer -e
+```
+.\build_win.bat -d --deps-dir C:\borpa-deps
+.\build_win.bat -s --deps-dir C:\borpa-deps --build-dir C:\borpa-build
 ```
 
-## Mac
+The executable is then `C:\borpa-build\src\Release\orca-slicer.exe`.
+`.\build_win.bat -h` lists the other options.
 
-1. Download the universal DMG, which runs on both Apple Silicon and Intel Macs.
-2. Drag OrcaSlicer.app to Application folder.
-3. *If you want to run a build from a PR, you also need to follow the instructions below:*
+macOS and Linux builds follow OrcaSlicer's build scripts but are untested for Borpa.
 
-    <details>
-    <summary>Quarantine</summary>
+## Current limits
 
-    - Option 1 (You only need to do this once. After that the app can be opened normally.):
-      - Step 1: Hold _cmd_ and right click the app, from the context menu choose **Open**.
-      - Step 2: A warning window will pop up, click _Open_
+- Tested on Windows only.
+- The executable is still named `orca-slicer.exe`, and there is no installer.
+- Raster logos and icons (the application icon, the splash screen and a few Home
+  page images) are still OrcaSlicer's.
+- Each "Send to Prepare" adds objects to the plate; it does not replace objects
+  sent earlier.
+- Hew keeps its own look.
+- Settings live in `%APPDATA%\Borpa` and are separate from those of an installed
+  OrcaSlicer.
 
-    - Option 2:
-      Execute this command in terminal:
+## More
 
-      ```shell
-      xattr -dr com.apple.quarantine /Applications/OrcaSlicer.app
-      ```
+How the Hew tab works is described in `docs/HLSD/hew-tab.md`.
 
-    - Option 3:
-        - Step 1: open the app, a warning window will pop up  
-            ![mac_cant_open](./SoftFever_doc/mac_cant_open.png)
-        - Step 2: in `System Settings` -> `Privacy & Security`, click `Open Anyway`:  
-            ![mac_security_setting](./SoftFever_doc/mac_security_setting.png)
-    </details>
+After merging upstream OrcaSlicer changes, re-apply the accent colour with:
 
-### Homebrew Cask
-
-```shell
-brew install --cask orcaslicer
 ```
-
-The [Homebrew cask](https://formulae.brew.sh/cask/orcaslicer) installs the official macOS DMG from [GitHub Releases](https://github.com/OrcaSlicer/OrcaSlicer/releases).
-
-## Linux
-
-### Flathub (Recommended)
-
-OrcaSlicer is available through FlatHub:
-
-<a href='https://flathub.org/apps/com.orcaslicer.OrcaSlicer'><img width='240' alt='Download on Flathub' src='https://dl.flathub.org/assets/badges/flathub-badge-en.png'/></a>
-
-Install from the command line:
-
-```shell
-flatpak install flathub com.orcaslicer.OrcaSlicer
-flatpak run com.orcaslicer.OrcaSlicer
+node scripts/borpa_recolor.mjs
 ```
-
-It can also be installed through graphical software managers (KDE Discover, GNOME Software, etc.) when Flathub is enabled. Search for **OrcaSlicer** in your software center.
-
-### AppImage
-
-AppImages are published for both **x86_64** and **aarch64** (ARM64). Pick the file matching your CPU — the ARM64 build has `aarch64` in its name (e.g. `OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_*.AppImage`).
-
- 1. Download App image from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases).
- 2. Double click the downloaded file to run it.
-
- 3. If you run into trouble executing it, try this command in the terminal:
-    `chmod +x /path_to_appimage/OrcaSlicer_Linux.AppImage`
-
-# How to Compile
-
-All updated build instructions for Windows, macOS, and Linux are now available on the official [OrcaSlicer Wiki - How to build](https://www.orcaslicer.com/wiki/how_to_build) page.
-
-Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
-
-# Klipper Note
-
-If you're running Klipper, it's recommended to add the following configuration to your `printer.cfg` file.
-
-```gcode
-# Enable object exclusion
-[exclude_object]
-
-# Enable arcs support
-[gcode_arcs]
-resolution: 0.1
-```
-
-# Supports
-
-**OrcaSlicer** is an open-source project, and we're deeply grateful to all our sponsors and backers.  
-Their generous support helps fund filaments and other essential 3D printing materials for the project.  
-Thank you! :)
-
-## Sponsors
-
-<table>
-<tr>
-<td>
-<a href="https://qidi3d.com/" style="display:inline-block; border-radius:8px; background:#fff;">
-  <img src="SoftFever_doc\sponsor_logos\QIDI.png" alt="QIDI" width="100" height="100">
-</a>
-</td>
-<td>
-<a href="https://bigtree-tech.com/" style="display:inline-block; border-radius:8px; background:#222;">
-    <img src="SoftFever_doc\sponsor_logos\BigTreeTech.png" alt="BIGTREE TECH" width="100" height="100">
-</a>
-</td>
-</tr>
-</table>
-
-## Backers:
-
-**Ko-fi supporters** ☕: [Backers list](https://github.com/user-attachments/files/16147016/Supporters_638561417699952499.csv)
-
-## Support the project
-
-<a href="https://github.com/sponsors/SoftFever"><img src="https://img.shields.io/badge/GitHub%20Sponsors-30363D?style=flat&logo=GitHub-Sponsors&logoColor=EA4AAA" height="50"></a>  
-<a href="https://ko-fi.com/G2G5IP3CP"><img src="https://img.shields.io/badge/Support_me_on_Ko--fi-FF5E5B?style=flat&logo=ko-fi&logoColor=white" height="50"></a>  
-<a href="https://paypal.me/softfever3d"><img src="https://img.shields.io/badge/PayPal-003087?style=flat&logo=paypal&logoColor=fff" height="50"></a>
-
-## Some Background
-
-Open-source slicing has always been built on a tradition of collaboration and attribution. [Slic3r](https://github.com/Slic3r/Slic3r), created by Alessandro Ranellucci and the RepRap community, laid the foundation. [PrusaSlicer](https://github.com/prusa3d/PrusaSlicer) by Prusa Research built on Slic3r and acknowledged that heritage. [Bambu Studio](https://github.com/bambulab/BambuStudio) in turn forked from PrusaSlicer, and [SuperSlicer](https://github.com/supermerill/SuperSlicer) by @supermerill extended PrusaSlicer with community-driven enhancements. Each project carried the work of its predecessors forward, crediting those who came before.
-
-OrcaSlicer began in that same spirit, drawing from BambuStudio, PrusaSlicer, and ideas inspired by CuraSlicer and SuperSlicer. But it has since grown far beyond its origins. Through relentless innovation — introducing advanced calibration tools, precise wall and seam control, tree supports, adaptive slicing, and hundreds of other features — OrcaSlicer has become the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry.
-
-The OrcaSlicer logo was designed by community member [Justin Levine](https://github.com/jal-co).
-
-# License
-
-- **OrcaSlicer** is licensed under the GNU Affero General Public License, version 3.
-- The **GNU Affero General Public License**, version 3 ensures that if you use any part of this software in any way (even behind a web server), your software must be released under the same license.
-- OrcaSlicer includes a **pressure advance calibration pattern test** adapted from Andrew Ellis' generator, which is licensed under GNU General Public License, version 3. Ellis' generator is itself adapted from a generator developed by Sineos for Marlin, which is licensed under GNU General Public License, version 3.
-- The **Bambu networking plugin** is based on non-free libraries from BambuLab. It is optional to the OrcaSlicer and provides extended functionalities for Bambulab printer users.
