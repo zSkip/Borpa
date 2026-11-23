@@ -262,8 +262,10 @@ void HewPanel::on_plate(const std::string& name, const std::string& data)
                 throw std::runtime_error("cannot write " + path.string());
         }
 
-        // Added to the current project; its presets stay as they are.
-        const std::vector<size_t> loaded = wxGetApp().plater()->load_files({path}, LoadStrategy::LoadModel);
+        // Added to the current project; its presets stay as they are. Silence skips the 3MF
+        // import-options dialog on every send and keeps the temporary file from becoming the
+        // project file or the last-used folder.
+        const std::vector<size_t> loaded = wxGetApp().plater()->load_files({path}, LoadStrategy::LoadModel | LoadStrategy::Silence);
         if (!loaded.empty() && wxGetApp().mainframe != nullptr)
             wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     } catch (const std::exception& e) {

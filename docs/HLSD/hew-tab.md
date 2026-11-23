@@ -59,8 +59,10 @@ Messages are JSON strings with `"borpa": 1`; anything else is ignored.
   when the bridge is not installed yet.
 
 On `plate` the host writes the file to `<temp>/borpa_hew/<name>.3mf` and loads it with
-`LoadStrategy::LoadModel` only, so the objects are added to the current project and its presets
-are left alone, then switches to Prepare. Hew's 3MF export includes objects that are not
+`LoadStrategy::LoadModel | LoadStrategy::Silence`, so the objects are added to the current project
+and its presets are left alone, then switches to Prepare. `Silence` uses the saved geometry-import
+preferences without showing the import-options dialog, and keeps the temporary file from becoming
+the project file or the last-used folder; errors are still reported. Hew's 3MF export includes objects that are not
 watertight solids; `nonSolid` counts them, and the host only logs it.
 
 ## Deliberately not shared
