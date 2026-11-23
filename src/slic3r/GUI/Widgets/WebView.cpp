@@ -1,6 +1,7 @@
 #include "WebView.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/HewPanel.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
 #include <algorithm>
@@ -359,8 +360,16 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
         if (!s_schemes_registered) {
             webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
             webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
+#ifdef __linux__
+            // hew:// serves the bundled Hew modeler (HewPanel); global on WebKitGTK like the above.
+            webView->RegisterHandler(Slic3r::GUI::HewPanel::make_resource_handler());
+#endif
             s_schemes_registered = true;
         }
+#ifndef __linux__
+        // WKWebView takes handlers per view, so the view HewPanel creates must have its own.
+        webView->RegisterHandler(Slic3r::GUI::HewPanel::make_resource_handler());
+#endif
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
 #ifdef __linux__
         webView->SetUserAgent(linux_user_agent());

@@ -23,6 +23,7 @@
 #include "slic3r/GUI/LazyPage.hpp"
 #include "slic3r/GUI/Monitor.hpp"
 #include "slic3r/GUI/PrinterWebView.hpp"
+#include "slic3r/GUI/HewPanel.hpp"
 #include "slic3r/GUI/MultiMachinePage.hpp"
 #include "slic3r/GUI/CalibrationPanel.hpp"
 #include "slic3r/GUI/ReleaseNote.hpp"
@@ -1252,6 +1253,9 @@ void MainFrame::update_layout()
             m_tabpanel->InsertPage(prepare_pos++, TAB_ID_DESIGN, m_design_page, _L("Design"), "tab_design_active");
         }
 #endif
+        // Hew follows Design (when present) the same way, so the order is Home, Design, Hew, Prepare.
+        if (m_hew_page != nullptr)
+            m_tabpanel->InsertPage(prepare_pos++, TAB_ID_HEW, m_hew_page, _L("Hew"), "tab_hew_active");
         m_tabpanel->InsertPage(prepare_pos, TAB_ID_PREPARE, m_plater, _L("Prepare"), "tab_3d_active");
         m_tabpanel->InsertPage(prepare_pos + 1, TAB_ID_PREVIEW, m_plater, _L("Preview"), "tab_preview_active");
         m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 0);
@@ -1605,6 +1609,13 @@ void MainFrame::init_tabpanel() {
         start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
     }
 #endif
+
+    if (wxGetApp().is_editor()) {
+        // Never prebuilt: the page loads an ~11 MB WebAssembly kernel, so it is built only when
+        // the tab is first opened. update_layout() puts it in the book, between Home and Prepare.
+        m_hew_page = new LazyPage<HewPanel>(m_tabpanel, TAB_ID_HEW, -1);
+        m_lazy_pages.push_back(m_hew_page);
+    }
 
     create_preset_tabs();
 

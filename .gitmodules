@@ -1,0 +1,3 @@
+[submodule "hew"]
+	path = hew
+	url = https://github.com/zSkip/Hew-Pointer.git

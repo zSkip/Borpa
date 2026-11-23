@@ -41,6 +41,7 @@
 #ifdef SLIC3R_CAD
 #define TAB_ID_DESIGN        "design"
 #endif
+#define TAB_ID_HEW           "hew"
 #define TAB_ID_PREPARE       "prepare"
 #define TAB_ID_PREVIEW       "preview"
 #define TAB_ID_MONITOR       "monitor"
@@ -96,6 +97,7 @@ class Plater;
 #ifdef SLIC3R_CAD
 class DesignPanel;
 #endif
+class HewPanel;
 class MainFrame;
 class WebViewPanel;
 class ParamsDialog;
@@ -524,6 +526,7 @@ public:
 #endif
     // The top bar's Undo/Redo, for a tab that keeps its own history (Design).
     void set_undo_redo_enabled(bool undo, bool redo);
+    LazyPage<HewPanel>* m_hew_page{ nullptr };
     //BBS: GUI refactor
     LazyPage<MonitorPanel>* m_monitor_page{ nullptr };
 
