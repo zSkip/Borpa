@@ -111,7 +111,7 @@ endif()
 option(SLIC3R_STATIC            "Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
 option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
 option(SLIC3R_OPENVDB           "Compile OrcaSlicer with OpenVDB (used only by SLA hollowing)" 0)
-option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT's TKFillet, TKOffset and TKBool)" 1)
+option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT's TKFillet, TKOffset and TKBool)" 0) # Borpa: OFF, its sources are removed
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
@@ -353,6 +353,11 @@ if (SLIC3R_GUI)
     add_definitions(-DSLIC3R_GUI)
 endif ()
 
+# Borpa: OrcaSlicer's Design/CAD tab sources are removed (scripts/borpa_strip_cad.mjs).
+if (SLIC3R_CAD AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/libslic3r/CAD/CadDocument.cpp")
+    message(FATAL_ERROR "Borpa removed OrcaSlicer's Design/CAD tab sources (see scripts/borpa_strip_cad.mjs), "
+        "so SLIC3R_CAD must stay OFF. Configure with -DSLIC3R_CAD=OFF.")
+endif ()
 if (SLIC3R_CAD)
     add_definitions(-DSLIC3R_CAD)
 endif ()
