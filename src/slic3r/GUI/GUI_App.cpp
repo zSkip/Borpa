@@ -6631,6 +6631,13 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
     AppConfig* app_config = wxGetApp().app_config;
     bool       check_stable_only = app_config->get_bool("check_stable_update_only");
     auto version_check_url = app_config->version_check_url();
+    // Borpa: no update server unless one is configured (AppConfig.cpp, VERSION_CHECK_URL).
+    if (version_check_url.empty()) {
+        if (by_user != 0)
+            MessageDialog(mainframe, _L("This build does not check for application updates."), _L("Check for Updates"),
+                          wxOK | wxICON_INFORMATION).ShowModal();
+        return;
+    }
 
     UpdaterQuery query{
         detect_updater_iid(app_config),

@@ -59,7 +59,9 @@ using namespace nlohmann;
 
 namespace Slic3r {
 
-static const std::string VERSION_CHECK_URL = "https://check-version.orcaslicer.com/latest";
+// Borpa has no update server, and OrcaSlicer's would offer OrcaSlicer releases, so there is no
+// built-in application update check. A version_check_url set in the config still works.
+static const std::string VERSION_CHECK_URL = "";
 static const std::string PROFILE_UPDATE_URL = "https://check-version.orcaslicer.com/profile";
 
 constexpr const char* CONFIG_ORCA_UPDATER_URL = "orca_updater_url";
