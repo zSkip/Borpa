@@ -56,7 +56,8 @@ Messages are JSON strings with `"borpa": 1`; anything else is ignored.
 - Page to host, through `window.wx.postMessage`:
   - `{"type":"ready"}` once the bridge is installed;
   - `{"type":"plate","name":…,"data":<base64 3MF>,"nonSolid":<count>}` in answer to a send;
-  - `{"type":"error","code":"not-ready"|"empty"|"export-failed","message":…}`.
+  - `{"type":"error","code":"not-ready"|"empty"|"export-failed","message":…}`;
+  - `sim.run` and `sim.cancel` (see Simulation messages).
 - Host to page:
   - the button runs `window.__borpaHew.sendToPlate()`, or reports `not-ready` itself when the
     bridge is not installed yet;
@@ -91,6 +92,60 @@ An Object's filament is its base material; per-face paint is not offered, and an
 document from before filaments is flattened to one filament per Object. Every operation that
 makes an Object gives it the selected filament in the same undo step. Physical properties are not
 stored in the document.
+
+## The Sim tab
+
+The Sim tab shows the same `HewPanel`, inserted into the book a second time the way Prepare and
+Preview share the plater, so a study is set up on the model being edited rather than on a copy.
+On every tab change `MainFrame` calls `HewPanel::show_as_sim()`, which hides Send to Prepare under
+Sim and calls `window.__borpaHew.setMode("model" | "sim")`; the mode is also sent after every
+`ready`, since the page may be built after the tab was chosen.
+
+Simulations run outside the app's process. `HewSim` (`src/slic3r/GUI/HewSim.cpp`) takes a study
+from the page and runs it on a worker thread through `src/borpa_sim`, a library with no
+wxWidgets or libslic3r dependency that builds and tests on its own. The pipeline meshes the
+Object with Gmsh, writes and runs CalculiX, checks the result and writes a result file the page
+draws. Both programs are child processes, never linked: that isolates crashes, makes cancel a
+kill, and keeps GPL programs out of Borpa's own binary. Each runs in a Job Object, so cancelling,
+a watchdog stop, or Borpa exiting ends it and anything it started; with `PATH` cut down to its own
+folder and the Windows folders, so it cannot load another program's DLLs; and CalculiX on one
+thread, since its multi-threaded solver in these builds can return wrong answers with exit code
+0 on a busy machine. Exit code 0 is never taken as success on its own: each stage checks its
+output, and a static result must balance (the reactions at the supports cancel the applied
+forces). The watchdog stops a run that has printed nothing and used no CPU for two minutes, or
+that passes 30 minutes in all.
+
+The solvers are looked up in `<install>/solvers/gmsh/` and `<install>/solvers/calculix/`, or in
+the folder named by the `BORPA_SOLVERS_DIR` environment variable. The CMake cache entry
+`BORPA_SOLVERS_SOURCE` names a folder to install as `solvers/`; `scripts/borpa_fetch_solvers.ps1`
+downloads the pinned packages into one. A build without solvers still runs: the page is told
+which are missing.
+
+Job folders are `<temp>/borpa_sim/<job>/`, holding the mesher's and solver's input, output and
+logs; folders older than seven days are removed when the page is first built.
+
+## Simulation messages
+
+- Host to page:
+  - `setSimCapabilities({mesher, structural})` after every `ready`;
+  - `simEvent(event)`, one of
+    `{job, state:"running", stage:"mesh"|"solve"|"read", progress:0..1|null, message}`,
+    `{job, state:"done", resultUrl, summary}` or
+    `{job, state:"failed", code, message, logTail}`. Failure codes: `solver-missing`,
+    `bad-study`, `mesh-failed`, `solve-failed`, `no-result`, `timeout`, `stalled`, `cancelled`.
+- Page to host:
+  - `{"type":"sim.run","job":…,"study":…,"geometry":…}` starts a job; one runs at a time and a
+    new one cancels the old. `job` is `[A-Za-z0-9_-]{1,64}` and names the job folder. The study
+    (version 1: linear static stress on one Object, with fixed faces and forces) and the
+    geometry (the Object's welded surface, with a Hew face index per triangle, typed arrays in
+    base64) are specified in `src/borpa_sim/Request.hpp`;
+  - `{"type":"sim.cancel","job":…}`.
+
+`summary` holds `nodes`, `elements`, `meshSize`, `maxDisplacement`, `maxVonMises`,
+`reactionForce` and `wallSeconds`. The result is served at `sim/<job>/result.bsr` under the page's
+origin; the handler serves that one file name from the job folders and nothing else from them.
+Its layout is documented in `src/borpa_sim/ResultFile.hpp`: the mesh's outer surface, each
+triangle tagged with its Hew face, and per-node fields (`displacement`, `vonMises`).
 
 ## Deliberately not shared
 

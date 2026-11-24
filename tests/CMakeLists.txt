@@ -96,6 +96,8 @@ add_subdirectory(slic3rutils)
 add_subdirectory(fff_print)
 add_subdirectory(sla_print)
 add_subdirectory(filament_group)
+# Borpa's simulation pipeline keeps its tests beside it, so it can also build on its own.
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/borpa_sim/tests ${CMAKE_CURRENT_BINARY_DIR}/borpa_sim)
 
 # End-to-end checks of the orca-slicer binary. Linux only: they read result.json, which the CLI
 # writes on Linux only. src/ is added before tests/, so the target is known here.

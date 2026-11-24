@@ -42,6 +42,8 @@
 #define TAB_ID_DESIGN        "design"
 #endif
 #define TAB_ID_HEW           "hew"
+// Shows the same page as TAB_ID_HEW, in simulation mode (HewPanel::show_as_sim).
+#define TAB_ID_SIM           "sim"
 #define TAB_ID_PREPARE       "prepare"
 #define TAB_ID_PREVIEW       "preview"
 #define TAB_ID_MONITOR       "monitor"

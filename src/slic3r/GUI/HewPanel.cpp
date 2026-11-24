@@ -2,6 +2,7 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "HewSim.hpp"
 #include "I18N.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
@@ -141,6 +142,7 @@ wxString mime_type(const wxString& extension)
         {"otf", "font/otf"},
         {"txt", "text/plain"},
         {"hew", "application/octet-stream"},
+        {"bsr", "application/octet-stream"},
     };
     const wxString ext = extension.Lower();
     for (const auto& [name, type] : types)
@@ -164,11 +166,20 @@ public:
             path = "index.html";
         if (path.StartsWith("/") || path.Contains(":") || path.Contains("\\"))
             return nullptr;
-        for (const wxString& segment : wxSplit(path, '/'))
+        const wxArrayString segments = wxSplit(path, '/');
+        for (const wxString& segment : segments)
             if (segment == "..")
                 return nullptr;
 
-        const boost::filesystem::path full = bundle_dir() / into_path(path);
+        // sim/<job>/<file>: a simulation result from the job folders, not the bundle.
+        boost::filesystem::path full;
+        if (segments.size() == 3 && segments[0] == "sim") {
+            const std::string served = HewSim::served_file(segments[1], segments[2]);
+            if (served.empty())
+                return nullptr;
+            full = into_path(wxString::FromUTF8(served));
+        } else
+            full = bundle_dir() / into_path(path);
         boost::system::error_code     ec;
         if (!boost::filesystem::is_regular_file(full, ec))
             return nullptr;
@@ -242,6 +253,7 @@ HewPanel::HewPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxDefaultPositi
     toolbar->AddStretchSpacer(1);
     toolbar->Add(send, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(4));
     sizer->Add(toolbar, 0, wxEXPAND);
+    m_send_button = send;
 
     m_browser = WebView::CreateWebView(this, "");
 #ifdef __WIN32__
@@ -269,12 +281,20 @@ HewPanel::HewPanel(wxWindow* parent) : wxPanel(parent, wxID_ANY, wxDefaultPositi
     sizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
     SetSizer(sizer);
 
+    m_sim = std::make_unique<HewSim>(this, [this](const wxString& script) {
+        if (m_browser != nullptr)
+            WebView::RunScript(m_browser, script);
+    });
+    apply_mode();
+
     m_browser->LoadURL(start_url());
 }
 
 HewPanel::~HewPanel()
 {
     m_preset_timer.Stop();
+    // Stops a running study, and its solver, before the page goes.
+    m_sim.reset();
     SetEvtHandlerEnabled(false);
     if (m_browser != nullptr) {
         m_browser->Destroy();
@@ -308,6 +328,20 @@ void HewPanel::on_script_message(wxWebViewEvent& evt)
             CallAfter([this] {
                 m_page_ready = true;
                 send_filaments(true);
+                apply_mode();
+                if (m_sim)
+                    WebView::RunScript(m_browser, m_sim->capabilities_script());
+            });
+        } else if (type == "sim.run") {
+            // The whole message: HewSim reads the study and the geometry from it.
+            CallAfter([this, text = std::string(evt.GetString().ToUTF8().data())] {
+                if (m_sim)
+                    m_sim->run(text);
+            });
+        } else if (type == "sim.cancel") {
+            CallAfter([this, job = msg.value("job", std::string())] {
+                if (m_sim)
+                    m_sim->cancel(job);
             });
         } else if (type == "plate") {
             BOOST_LOG_TRIVIAL(info) << "Hew: plate received, non-solid objects in it: " << msg.value("nonSolid", 0);
@@ -366,6 +400,25 @@ void HewPanel::send_filaments(bool force)
     BOOST_LOG_TRIVIAL(info) << "Hew: sending the filament list";
     WebView::RunScript(m_browser, wxString::FromUTF8("(function(){var h=window.__borpaHew;if(h&&h.setFilaments){h.setFilaments(" + list + ");}})();"));
     m_sent_filaments = std::move(list);
+}
+
+void HewPanel::show_as_sim(bool sim)
+{
+    s_show_as_sim = sim;
+    if (HewPanel* panel = if_built())
+        panel->apply_mode();
+}
+
+void HewPanel::apply_mode()
+{
+    // Sending to Prepare belongs to the Model tab.
+    if (m_send_button != nullptr && m_send_button->IsShown() == s_show_as_sim) {
+        m_send_button->Show(!s_show_as_sim);
+        Layout();
+    }
+    if (m_browser != nullptr && m_page_ready)
+        WebView::RunScript(m_browser, wxString::Format("(function(){var h=window.__borpaHew;if(h&&h.setMode){h.setMode('%s');}})();",
+                                                       s_show_as_sim ? "sim" : "model"));
 }
 
 void HewPanel::show_error(const std::string& code)

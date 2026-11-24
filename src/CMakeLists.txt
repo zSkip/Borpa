@@ -17,6 +17,9 @@ if (SLIC3R_GUI)
     add_subdirectory(glad)
     # imgui, imguizmo, and hidapi are now included from deps_src
     add_subdirectory(libvgcode)
+# Borpa's simulation pipeline (meshing, solver files, child processes); see src/borpa_sim.
+set(BORPA_SOLVERS_SOURCE "" CACHE PATH "Folder with the solvers to bundle (gmsh/, calculix/); empty bundles none")
+add_subdirectory(borpa_sim)
 
     if(WIN32)
         message(STATUS "WXWIN environment set to: $ENV{WXWIN}")
@@ -399,6 +402,11 @@ if (WIN32)
     endif ()
     install(FILES ${output_dlls_${build_type}} DESTINATION ".")
     install(DIRECTORY "${CMAKE_PREFIX_PATH}/libpython/" DESTINATION "python")
+    # Borpa's bundled solvers, one folder each (gmsh/, calculix/), run as child processes from
+    # <install>/solvers. scripts/borpa_fetch_solvers.ps1 fills such a folder.
+    if (BORPA_SOLVERS_SOURCE)
+        install(DIRECTORY "${BORPA_SOLVERS_SOURCE}/" DESTINATION "solvers")
+    endif ()
 else ()
     if (APPLE)
     else()

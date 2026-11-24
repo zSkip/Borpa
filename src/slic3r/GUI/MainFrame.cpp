@@ -1253,15 +1253,25 @@ void MainFrame::update_layout()
             m_tabpanel->InsertPage(prepare_pos++, TAB_ID_DESIGN, m_design_page, _L("Design"), "tab_design_active");
         }
 #endif
-        // Hew follows Design (when present) the same way, so the order is Home, Design, Hew, Prepare.
-        if (m_hew_page != nullptr)
+        // Hew follows Design (when present) the same way, so the order is Home, Design, Hew, Sim,
+        // Prepare. Sim shows the same page, as Prepare and Preview share the plater: studies are
+        // set up on the model being edited.
+        if (m_hew_page != nullptr) {
             m_tabpanel->InsertPage(prepare_pos++, TAB_ID_HEW, m_hew_page, _L("Hew"), "tab_hew_active");
+            // TRN Tab name: simulation (stress and, later, heat, flow and motion) of the model.
+            m_tabpanel->InsertPage(prepare_pos++, TAB_ID_SIM, m_hew_page, _L("Sim"), "tab_sim_active");
+        }
         m_tabpanel->InsertPage(prepare_pos, TAB_ID_PREPARE, m_plater, _L("Prepare"), "tab_3d_active");
         m_tabpanel->InsertPage(prepare_pos + 1, TAB_ID_PREVIEW, m_plater, _L("Preview"), "tab_preview_active");
         m_main_sizer->Add(m_tabpanel, 1, wxEXPAND | wxTOP, 0);
 
         m_tabpanel->Bind(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, [this](wxCommandEvent& evt)
         {
+            // Model and Sim show one page; tell it which tab it is under.
+            if (evt.GetId() == m_tabpanel->FindPageByName(TAB_ID_SIM))
+                HewPanel::show_as_sim(true);
+            else if (evt.GetId() == m_tabpanel->FindPageByName(TAB_ID_HEW))
+                HewPanel::show_as_sim(false);
             // jump to 3deditor under preview_only mode
             if (evt.GetId() == m_tabpanel->FindPageByName(TAB_ID_PREPARE)) {
                 Sidebar& sidebar = GUI::wxGetApp().sidebar();
