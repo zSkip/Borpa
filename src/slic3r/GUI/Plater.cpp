@@ -19216,6 +19216,15 @@ static LoadType choose_3mf_load_type(Plater& plater, const fs::path& file)
     return determine_load_type(filename, !plater.model().objects.empty() && ask_when_relevant ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
 }
 
+std::vector<size_t> Plater::add_hew_objects(Model& model)
+{
+    if (model.objects.empty())
+        return {};
+    Plater::TakeSnapshot snapshot(this, "Send to Prepare");
+    model.center_instances_around_point(p->bed.build_volume().bed_center());
+    return p->load_model_objects(model.objects);
+}
+
 //BBS: remove GCodeViewer as seperate APP logic
 bool Plater::load_files(const wxArrayString& filenames)
 {

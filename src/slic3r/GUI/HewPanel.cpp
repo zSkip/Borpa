@@ -2,6 +2,7 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "HewPlate.hpp"
 #include "HewSim.hpp"
 #include "I18N.hpp"
 #include "MainFrame.hpp"
@@ -12,7 +13,10 @@
 #include "Widgets/WebView.hpp"
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/Format/ProjectStrategy.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -30,6 +34,7 @@
 #include <wx/arrstr.h>
 #include <wx/base64.h>
 #include <wx/buffer.h>
+#include <wx/colour.h>
 #include <wx/datetime.h>
 #include <wx/filename.h>
 #include <wx/filesys.h>
@@ -45,6 +50,7 @@
 #include <cstddef>
 #include <exception>
 #include <ios>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -68,6 +74,29 @@ const std::string* first_string(const DynamicPrintConfig& config, const char* ke
 {
     const auto* opt = config.option<ConfigOptionStrings>(key);
     return opt != nullptr && !opt->values.empty() ? &opt->values.front() : nullptr;
+}
+
+// Objects closer than this, in mm, are parts of one model on the plate. Hew writes touching
+// faces at the same coordinates, so this only absorbs float rounding.
+constexpr double TOUCH_TOLERANCE_MM = 0.01;
+
+// How many filaments the selected printer prints at once: one per extruder, or any number with
+// a single-extruder multi-material unit (an AMS, an MMU).
+size_t printer_holds(const PresetBundle& bundle)
+{
+    const DynamicPrintConfig& config   = bundle.printers.get_edited_preset().config;
+    const auto*               nozzles  = config.option<ConfigOptionFloats>("nozzle_diameter");
+    const auto*               multi    = config.option<ConfigOptionBool>("single_extruder_multi_material");
+    const size_t              extruders = nozzles != nullptr && !nozzles->values.empty() ? nozzles->values.size() : 1;
+    return multi != nullptr && multi->value ? MAXIMUM_EXTRUDER_NUMBER : extruders;
+}
+
+wxString join_names(const std::vector<std::string>& names)
+{
+    wxString out;
+    for (const std::string& name : names)
+        out += (out.empty() ? "" : ", ") + wxString::FromUTF8(name);
+    return out;
 }
 
 // The filaments the selected printer can use, as the page takes them (borpa/filaments.ts in Hew):
@@ -345,7 +374,14 @@ void HewPanel::on_script_message(wxWebViewEvent& evt)
             });
         } else if (type == "plate") {
             BOOST_LOG_TRIVIAL(info) << "Hew: plate received, non-solid objects in it: " << msg.value("nonSolid", 0);
-            CallAfter([this, name = msg.value("name", std::string()), data = msg.value("data", std::string())] { on_plate(name, data); });
+            std::map<std::string, std::string> filaments;
+            if (const auto f = msg.find("filaments"); f != msg.end() && f->is_object())
+                for (const auto& [material, preset] : f->items())
+                    if (preset.is_string())
+                        filaments[material] = preset.get<std::string>();
+            CallAfter([this, name = msg.value("name", std::string()), data = msg.value("data", std::string()), filaments = std::move(filaments)] {
+                on_plate(name, data, filaments);
+            });
         } else if (type == "error") {
             BOOST_LOG_TRIVIAL(warning) << "Hew: " << msg.value("code", std::string()) << " " << msg.value("message", std::string());
             CallAfter([this, code = msg.value("code", std::string())] { show_error(code); });
@@ -355,7 +391,7 @@ void HewPanel::on_script_message(wxWebViewEvent& evt)
     }
 }
 
-void HewPanel::on_plate(const std::string& name, const std::string& data)
+void HewPanel::on_plate(const std::string& name, const std::string& data, const std::map<std::string, std::string>& filaments)
 {
     try {
         const wxMemoryBuffer bytes = wxBase64Decode(data.data(), data.size());
@@ -374,12 +410,107 @@ void HewPanel::on_plate(const std::string& name, const std::string& data)
                 throw std::runtime_error("cannot write " + path.string());
         }
 
-        // Added to the current project; its presets stay as they are. Silence skips the 3MF
-        // import-options dialog on every send and keeps the temporary file from becoming the
-        // project file or the last-used folder.
-        const std::vector<size_t> loaded = wxGetApp().plater()->load_files({path}, LoadStrategy::LoadModel | LoadStrategy::Silence);
+        // Read here rather than through load_files: the objects are regrouped and given their
+        // filaments first, and load_files would ask whether a stacked model is one object.
+        DynamicPrintConfig        file_config;
+        ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+        PlateDataPtrs             plate_data;
+        std::vector<Preset*>      file_presets;
+        Model model = Model::read_from_file(path.string(), &file_config, &substitutions,
+                                            LoadStrategy::LoadModel | LoadStrategy::AddDefaultInstances, &plate_data, &file_presets);
+        release_PlateData_list(plate_data);
+        for (Preset* preset : file_presets)
+            delete preset;
+
+        // Each object's filament preset, by the name of its material in the file.
+        const std::vector<std::string> materials = HewPlate::item_material_names(path.string());
+        if (materials.size() != model.objects.size())
+            BOOST_LOG_TRIVIAL(warning) << "Hew: the plate has " << model.objects.size() << " objects and " << materials.size()
+                                       << " material names; every object prints in filament 1";
+        std::vector<std::string> preset_of(model.objects.size());
+        std::vector<std::string> needed;
+        for (size_t i = 0; i < preset_of.size() && materials.size() == model.objects.size(); ++i)
+            if (const auto it = filaments.find(materials[i]); it != filaments.end() && !it->second.empty()) {
+                preset_of[i] = it->second;
+                if (std::find(needed.begin(), needed.end(), it->second) == needed.end())
+                    needed.push_back(it->second);
+            }
+
+        PresetBundle*     bundle = wxGetApp().preset_bundle;
+        std::vector<bool> known;
+        for (const std::string& preset : needed)
+            known.push_back(bundle->filaments.find_preset(preset, false) != nullptr);
+        const HewPlate::SlotPlan plan = HewPlate::plan_slots(needed, bundle->filament_presets, bundle->num_physical_filaments(),
+                                                             MAXIMUM_EXTRUDER_NUMBER, printer_holds(*bundle), known);
+        auto log_slots = [bundle](const char* when) {
+            std::string list;
+            for (const std::string& preset : bundle->filament_presets)
+                list += "[" + preset + "]";
+            BOOST_LOG_TRIVIAL(info) << "Hew: filament slots " << when << " (" << bundle->num_physical_filaments() << " physical): " << list;
+        };
+        log_slots("before");
+        for (const std::string& preset : plan.added) {
+            const Preset*      found  = bundle->filaments.find_preset(preset, false);
+            const std::string* colour = found != nullptr ? first_string(found->config, "filament_colour") : nullptr;
+            wxGetApp().sidebar().add_custom_filament(wxColour(colour != nullptr ? *colour : std::string("#FFFFFF")), preset);
+        }
+        // add_custom_filament names the slot's preset after its combo box was built.
+        if (!plan.added.empty())
+            wxGetApp().sidebar().update_presets(Preset::TYPE_FILAMENT);
+        log_slots("after");
+        // The slots as they now are; a slot that could not be added prints in filament 1.
+        auto slot_of = [bundle](const std::string& preset) {
+            const auto&  slots    = bundle->filament_presets;
+            const size_t physical = std::min(bundle->num_physical_filaments(), slots.size());
+            const auto   it       = std::find(slots.begin(), slots.begin() + physical, preset);
+            return it == slots.begin() + physical ? 1 : int(it - slots.begin()) + 1;
+        };
+
+        // Objects that touch become the parts of one object; each part prints in its filament.
+        Model plate;
+        for (const std::vector<size_t>& group : HewPlate::touching_groups(model, TOUCH_TOLERANCE_MM)) {
+            // A lone object prints in its object's extruder; the parts of a merged object keep
+            // their own, which convert_multipart_object carries over.
+            Model parts;
+            for (size_t i : group) {
+                ModelObject* object = parts.add_object(*model.objects[i]);
+                if (preset_of[i].empty())
+                    continue;
+                if (group.size() == 1)
+                    object->config.set("extruder", slot_of(preset_of[i]));
+                else
+                    for (ModelVolume* volume : object->volumes)
+                        volume->config.set("extruder", slot_of(preset_of[i]));
+            }
+            if (parts.objects.size() > 1) {
+                parts.convert_multipart_object(unsigned(bundle->filament_presets.size()), true);
+                ModelObject* merged = parts.objects.front();
+                merged->add_instance();
+                merged->center_around_origin();
+            }
+            const ModelObject* added = plate.add_object(*parts.objects.front());
+            std::string        slots;
+            for (const ModelVolume* volume : added->volumes)
+                slots += " " + std::to_string(volume->config.has("extruder") ? volume->config.extruder() : added->config.extruder());
+            BOOST_LOG_TRIVIAL(info) << "Hew: plate object \"" << added->name << "\", " << added->volumes.size() << " part(s), filaments" << slots;
+        }
+
+        const std::vector<size_t> loaded = wxGetApp().plater()->add_hew_objects(plate);
         if (!loaded.empty() && wxGetApp().mainframe != nullptr)
             wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+
+        wxString warning;
+        if (!plan.unknown.empty())
+            // TRN %1% is a list of filament preset names.
+            warning += format_wxstr(_L("These filaments are not in the filament list, so their parts print with filament 1: %1%"),
+                                    join_names(plan.unknown)) + "\n\n";
+        if (!plan.overflow.empty())
+            // TRN %1% is a list of filament preset names.
+            warning += format_wxstr(_L("The selected printer cannot print all the filaments of this model at once. These "
+                                       "filaments did not fit and need another printer or a filament change by hand: %1%"),
+                                    join_names(plan.overflow));
+        if (!warning.empty())
+            MessageDialog(this, warning.Trim(), _L("Hew"), wxOK | wxICON_WARNING).ShowModal();
     } catch (const std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << "Hew: sending the model to Prepare failed: " << e.what();
         // TRN %1% is the reason given by the system, such as a file that could not be written.

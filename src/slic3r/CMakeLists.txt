@@ -485,6 +485,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PrinterWebView.hpp
     GUI/HewPanel.cpp
     GUI/HewPanel.hpp
+    GUI/HewPlate.cpp
+    GUI/HewPlate.hpp
     GUI/HewSim.cpp
     GUI/HewSim.hpp
     GUI/PrintHostDialogs.cpp

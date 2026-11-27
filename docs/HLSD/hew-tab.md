@@ -55,7 +55,8 @@ Messages are JSON strings with `"borpa": 1`; anything else is ignored.
   `window.__BORPA_HOST__ = { version, dark }`. Hew checks for it to know it is embedded.
 - Page to host, through `window.wx.postMessage`:
   - `{"type":"ready"}` once the bridge is installed;
-  - `{"type":"plate","name":…,"data":<base64 3MF>,"nonSolid":<count>}` in answer to a send;
+  - `{"type":"plate","name":…,"data":<base64 3MF>,"nonSolid":<count>,"filaments":{<material>:<preset>}}`
+    in answer to a send;
   - `{"type":"error","code":"not-ready"|"empty"|"export-failed","message":…}`;
   - `sim.run` and `sim.cancel` (see Simulation messages).
 - Host to page:
@@ -75,12 +76,22 @@ so rather than hook each of those, the panel builds the list once a second while
 sends it when it differs from the last one sent. Hidden, it does nothing, and the first check
 after the tab is shown again brings the page up to date.
 
-On `plate` the host writes the file to `<temp>/borpa_hew/<name>.3mf` and loads it with
-`LoadStrategy::LoadModel | LoadStrategy::Silence`, so the objects are added to the current project
-and its presets are left alone, then switches to Prepare. `Silence` uses the saved geometry-import
-preferences without showing the import-options dialog, and keeps the temporary file from becoming
-the project file or the last-used folder; errors are still reported. Hew's 3MF export includes objects that are not
-watertight solids; `nonSolid` counts them, and the host only logs it.
+On `plate` the host writes the file to `<temp>/borpa_hew/<name>.3mf` and reads it with
+`Model::read_from_file` rather than `load_files`, because the objects are regrouped and given their
+filaments before they reach the plater, and `load_files` would ask whether a stacked model is one
+object. Hew names each core-spec `<base>` after its material, and a build material is named after
+its filament preset, so `HewPlate::item_material_names` reads each build item's material name from
+the file and the message's `filaments` map turns it into a preset. Each preset gets a project slot:
+a slot already holding it is reused, a missing one is added after the physical slots
+(`Sidebar::add_custom_filament`), and a preset the bundle does not have prints in slot 1. Objects
+that touch (a vertex of one within 0.01 mm of the other's surface: a part drawn on another's face,
+an inlay) become the parts of one object, merged with `Model::convert_multipart_object`; every
+part, and every lone object, has its `extruder` set to its slot. `Plater::add_hew_objects` adds the
+result centred on the bed in one undo step and the tab switches to Prepare. The project's other
+presets are left alone. When the selected printer cannot print that many filaments at once (one
+per extruder, unless it has a single-extruder multi-material unit), or a preset is unknown, the
+objects are loaded anyway and a warning names the filaments concerned. Hew's 3MF export includes
+objects that are not watertight solids; `nonSolid` counts them, and the host only logs it.
 
 ## Filaments in Hew
 

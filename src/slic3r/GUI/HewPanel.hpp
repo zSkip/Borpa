@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <memory>
 #include <string>
 
@@ -43,7 +44,8 @@ public:
 private:
     void on_script_message(wxWebViewEvent& evt);
     void on_new_window(wxWebViewEvent& evt);
-    void on_plate(const std::string& name, const std::string& data);
+    // `filaments` maps each material name in the 3MF to the filament preset it stands for.
+    void on_plate(const std::string& name, const std::string& data, const std::map<std::string, std::string>& filaments);
     void show_error(const std::string& code);
     // Sends the page the filament list when it differs from the last one sent, or always when
     // `force` is set. Nothing is sent before the page reports it is ready.

@@ -465,6 +465,10 @@ public:
                                    const std::function<void()>& before_publish = nullptr);
     // to be called on drag and drop
     bool load_files(const wxArrayString& filenames);
+    // Borpa: adds the objects of `model`, the model tab's design already grouped into parts with
+    // their filaments set, centred on the bed as a loaded 3MF is, in one undo step. Skips
+    // load_files' questions about multi-part files. Returns the indices of the new objects.
+    std::vector<size_t> add_hew_objects(Model& model);
 
     const wxString& get_last_loaded_gcode() const { return m_last_loaded_gcode; }
 
